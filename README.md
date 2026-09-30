@@ -103,7 +103,7 @@ Developed and tested on Python 3.13; needs an Anthropic API key. Commands are fo
 Windows PowerShell; on macOS/Linux activate the venv with `source .venv/bin/activate`.
 
 ```powershell
-git clone https://github.com/jezelpogi/secure-rag.git
+git clone https://github.com/jez-elijah/secure-rag.git
 cd secure-rag
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
