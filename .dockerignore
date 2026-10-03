@@ -1,0 +1,12 @@
+.git
+.github
+.venv
+.env
+__pycache__
+*.pyc
+.pytest_cache
+chroma_db
+logs
+data/users.db
+eval/results
+tests

@@ -1,4 +1,4 @@
-from generation.citations import validate_citations
+from secure_rag.generation.citations import validate_citations
 
 
 def test_single_valid_citation():

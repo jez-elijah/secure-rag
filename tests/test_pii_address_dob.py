@@ -1,8 +1,8 @@
 import json
 from types import SimpleNamespace
 
-import pipeline as n
-from security.pii import Redactor
+from secure_rag import pipeline as n
+from secure_rag.security.pii import Redactor
 
 TEXT = (
     "If the bank rejects it, a check is mailed to 4471 Elmwood Drive, Memphis, TN 38118. "

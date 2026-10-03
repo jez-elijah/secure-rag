@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parent.parent
 os.chdir(ROOT)
 sys.path.insert(0, str(ROOT))
 
-from pipeline import ask  # noqa: E402
+from secure_rag.pipeline import ask  # noqa: E402
 
 role, question = sys.argv[1], " ".join(sys.argv[2:])
 result = ask(question, user_role=role, redact=True)

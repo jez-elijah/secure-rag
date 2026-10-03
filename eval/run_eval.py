@@ -18,8 +18,8 @@ os.chdir(ROOT)  # paths in naive_rag.py are relative to the project root
 sys.path.insert(0, str(ROOT))
 
 import anthropic  # noqa: E402
-from pipeline import ask  # noqa: E402
-from settings import MODEL, K  # noqa: E402  (also loads .env)
+from secure_rag.pipeline import ask  # noqa: E402
+from secure_rag.settings import MODEL, K  # noqa: E402  (also loads .env)
 
 JUDGE_MODEL = os.getenv("JUDGE_MODEL", "claude-sonnet-5")
 judge_client = anthropic.Anthropic()

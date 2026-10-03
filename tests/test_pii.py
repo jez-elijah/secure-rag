@@ -1,8 +1,8 @@
 import json
 from types import SimpleNamespace
 
-import pipeline as n
-from security.pii import Redactor
+from secure_rag import pipeline as n
+from secure_rag.security.pii import Redactor
 
 TEXT = (
     "Maria Santos requested leave. Her employee ID is EMP-20418, her SSN is 512-44-8291, "

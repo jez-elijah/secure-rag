@@ -1,0 +1,10 @@
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    env_file: .env          # ANTHROPIC_API_KEY and AUTH_SECRET (see README)
+    volumes:
+      - state:/app/state    # vector index, users database, audit logs
+volumes:
+  state:

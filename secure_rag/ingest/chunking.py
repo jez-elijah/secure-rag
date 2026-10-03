@@ -1,7 +1,7 @@
 """Split documents into chunks."""
 import re
 
-from settings import CHUNK_MIN_CHARS
+from secure_rag.settings import CHUNK_MIN_CHARS
 
 
 def chunk_text(text, min_chars=CHUNK_MIN_CHARS):

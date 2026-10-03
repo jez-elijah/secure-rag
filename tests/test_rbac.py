@@ -1,7 +1,7 @@
 import pytest
 
-from retrieval.search import retrieve
-from settings import ROLE_ACCESS
+from secure_rag.retrieval.search import retrieve
+from secure_rag.settings import ROLE_ACCESS
 
 QUESTIONS = [
     "What is the Q3 fuel budget?",

@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parent.parent
 os.chdir(ROOT)
 sys.path.insert(0, str(ROOT))
 
-from security.auth import create_user  # noqa: E402
+from secure_rag.security.auth import create_user  # noqa: E402
 
 DEMO_USERS = [
     ("alice", "employee"),

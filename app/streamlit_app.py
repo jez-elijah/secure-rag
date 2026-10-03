@@ -13,8 +13,8 @@ sys.path.insert(0, str(ROOT))
 
 import streamlit as st  # noqa: E402
 
-from security.auth import authenticate, issue_token, verify_token  # noqa: E402
-from settings import ROLE_ACCESS  # noqa: E402
+from secure_rag.security.auth import authenticate, issue_token, verify_token  # noqa: E402
+from secure_rag.settings import ROLE_ACCESS  # noqa: E402
 
 st.set_page_config(page_title="Secure RAG Assistant", page_icon="🔒")
 st.title("🔒 Secure RAG Assistant")
@@ -22,9 +22,9 @@ st.title("🔒 Secure RAG Assistant")
 
 @st.cache_resource(show_spinner="Loading models and document index...")
 def load_pipeline():
-    import pipeline
-    from ingest.indexer import build_index
-    from resources import get_collection
+    from secure_rag import pipeline
+    from secure_rag.ingest.indexer import build_index
+    from secure_rag.resources import get_collection
 
     if get_collection().count() == 0:
         build_index()

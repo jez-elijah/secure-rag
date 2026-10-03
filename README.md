@@ -83,18 +83,23 @@ These came from reading failed rows, not from tuning to a score:
 ## Repository layout
 
 ```
-settings.py            paths, model names, role -> department map
-resources.py           embedding model, ChromaDB client, LLM client
-pipeline.py            ask(): retrieve -> redact -> generate -> validate citations (+ CLI)
-ingest/                chunking.py, indexer.py
-retrieval/             search.py (role-based filter)
-generation/            prompts.py, citations.py
-security/              pii.py (redaction), auth.py (users, tokens), audit.py
+secure_rag/            the installable package
+  settings.py          paths, model names, role -> department map (env-overridable)
+  resources.py         embedding model, ChromaDB client, LLM client (created lazily)
+  pipeline.py          ask(): retrieve -> redact -> generate -> validate citations (+ CLI)
+  client.py            SecureRAG class: the small library entry point
+  api.py               FastAPI service: /login, /ask, /health
+  ingest/              chunking.py, indexer.py
+  retrieval/           search.py (role-based filter)
+  generation/          prompts.py, citations.py
+  security/            pii.py (redaction), auth.py (users, tokens), audit.py
 app/streamlit_app.py   login + question demo UI
-eval/                  datasets, run_eval.py, results/
+examples/              langchain_rag.py (the same flow built with LangChain)
+eval/                  datasets, run_eval.py, benchmark_latency.py, results/
 scripts/               seed_users.py (demo accounts)
-tests/                 unit tests (redaction, access control, auth, citations)
+tests/                 unit tests (redaction, access control, auth, citations, API, LangChain)
 data/docs/             the synthetic corpus
+Dockerfile, docker-compose.yml, .github/workflows/ci.yml, pyproject.toml
 ```
 
 ## Setup
@@ -107,7 +112,7 @@ git clone https://github.com/jez-elijah/secure-rag.git
 cd secure-rag
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
+pip install -r requirements.txt          # installs the package in editable mode plus extras
 python -m spacy download en_core_web_lg
 ```
 
@@ -125,9 +130,9 @@ Optional: set `LLM_MODEL` to change the answering model (default `claude-haiku-4
 ## Usage
 
 ```powershell
-python -m ingest.indexer                                     # build the index (33 chunks)
-python pipeline.py "What is the restocking fee?" --role=employee --redact
-python -m pytest tests -q                                    # 30 tests
+python -m secure_rag.ingest.indexer                          # build the index (33 chunks)
+python -m secure_rag.pipeline "What is the restocking fee?" --role=employee --redact
+python -m pytest tests -q                                    # 47 tests
 ```
 
 **Run the evaluation** (about 110 short API calls per run):
@@ -158,6 +163,74 @@ Demo accounts (synthetic demo only; the password pattern is deliberately predict
 
 Try asking "What is the Q3 operating budget?" as `alice`, then as `fiona`. The
 "What was sent to the LLM" panel shows the redacted payload.
+
+## Use as a library
+
+```python
+from secure_rag import SecureRAG
+
+rag = SecureRAG()                      # PII redaction is on by default
+rag.index("path/to/docs")              # markdown files named <department>_<name>.md
+result = rag.ask("What is the restocking fee?", role="employee")
+print(result["answer"], result["sources"], result["timings_ms"])
+```
+
+`role` is a required argument so no call is unfiltered by accident. Paths and state can be
+moved with the environment variables `SECURE_RAG_DOCS_DIR`, `SECURE_RAG_DB_DIR`,
+`SECURE_RAG_USERS_DB`, `SECURE_RAG_AUDIT_LOG`, and `SECURE_RAG_AUTH_LOG`. The package imports
+without an API key or a model download; models are created on first use.
+
+## REST API
+
+```powershell
+pip install -e ".[api]"
+python scripts/seed_users.py
+uvicorn secure_rag.api:app
+```
+
+```
+POST /login   {"username": "hana", "password": "demo-hana-123"}  -> bearer token
+POST /ask     {"question": "...", "k": 5}   (Authorization: Bearer <token>)
+GET  /health  liveness only
+```
+
+The caller's role is looked up in the user database on every request, redaction is a server
+policy that clients cannot turn off (`SECURE_RAG_REDACT=0` is an operator-only override), and
+the exact LLM payload is never returned to clients. Interactive docs are at `/docs`.
+
+## Docker
+
+```powershell
+docker compose up --build
+docker compose run --rm api python scripts/seed_users.py   # create the demo accounts
+```
+
+The vector index, users database, and audit logs live in a named volume. The image uses
+CPU-only PyTorch and bakes in the embedding model and the spaCy model. GitHub Actions
+(`.github/workflows/ci.yml`) runs the tests and builds the image on every push; the LLM is
+faked in tests, so CI needs no API key.
+
+## LangChain version
+
+`examples/langchain_rag.py` rebuilds the same flow with LangChain (a role-filtered
+`BaseRetriever`, a prompt template, `ChatAnthropic`, an output parser), reusing the project's
+redaction, audit, and citation checks. It is covered by tests that use a fake chat model.
+
+```powershell
+pip install -e ".[langchain]"
+python examples/langchain_rag.py "What is the restocking fee?" --role=employee
+```
+
+## Latency benchmark
+
+```powershell
+python eval/benchmark_latency.py --label my_machine
+```
+
+Reports mean, p50, p95, and max milliseconds per stage (retrieve, redact, llm, post, total)
+for the baseline, RBAC, and RBAC + redaction configurations on the answerable questions,
+after a warm-up, and saves the result with the platform and model to `eval/results/latency_*.json`.
+The `llm` stage is a network call and varies with connection and time of day.
 
 ## Evaluation details
 
@@ -194,8 +267,9 @@ Try asking "What is the Q3 operating budget?" as `alice`, then as `fiona`. The
   non-English names) are not covered.
 - **Prompt injection through documents is not addressed.** A malicious instruction inside an
   ingested document could influence the model.
-- **Demo-grade authentication.** No login rate limiting, predictable demo passwords, and tokens
-  held in Streamlit session state.
+- **Demo-grade authentication.** No login rate limiting (in the app or the API), predictable demo
+  passwords, and tokens held in Streamlit session state. The API has no TLS or CORS configuration;
+  put it behind a reverse proxy before exposing it.
 - **Naive retrieval.** Paragraph-based chunking with top-5 vector search; no reranker or hybrid
   search.
 

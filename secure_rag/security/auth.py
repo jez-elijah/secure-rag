@@ -22,8 +22,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-DB_PATH = Path("data/users.db")
-AUTH_LOG = Path("logs/auth.jsonl")
+DB_PATH = Path(os.getenv("SECURE_RAG_USERS_DB", "data/users.db"))
+AUTH_LOG = Path(os.getenv("SECURE_RAG_AUTH_LOG", "logs/auth.jsonl"))
 TOKEN_TTL_MINUTES = 30
 VALID_ROLES = {"employee", "hr", "finance", "engineering", "admin"}
 _SCRYPT = {"n": 2**14, "r": 8, "p": 1, "dklen": 32}

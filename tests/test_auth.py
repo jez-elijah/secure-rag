@@ -3,7 +3,7 @@ import time
 import jwt
 import pytest
 
-from security import auth
+from secure_rag.security import auth
 
 
 @pytest.fixture(autouse=True)
@@ -65,6 +65,6 @@ def test_token_for_unknown_user_is_rejected():
 
 
 def test_auth_roles_match_pipeline_roles():
-    from settings import ROLE_ACCESS
+    from secure_rag.settings import ROLE_ACCESS
 
     assert auth.VALID_ROLES == set(ROLE_ACCESS)

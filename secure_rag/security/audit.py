@@ -2,7 +2,7 @@
 import json
 from datetime import datetime, timezone
 
-from settings import AUDIT_LOG
+from secure_rag.settings import AUDIT_LOG
 
 
 def audit(user_role, question, metas, redacted):

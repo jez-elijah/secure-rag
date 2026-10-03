@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "secure-rag"
+version = "0.1.0"
+description = "RAG with role-based retrieval, PII redaction before the LLM call, and validated citations."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "anthropic",
+    "chromadb",
+    "sentence-transformers",
+    "python-dotenv",
+    "presidio-analyzer",
+    "spacy",
+    "pyjwt",
+]
+
+[project.optional-dependencies]
+api = ["fastapi", "uvicorn[standard]"]
+ui = ["streamlit"]
+langchain = ["langchain-core", "langchain-anthropic"]
+dev = ["pytest", "httpx"]
+all = ["secure-rag[api,ui,langchain,dev]"]
+
+[project.scripts]
+secure-rag = "secure_rag.pipeline:cli"
+
+[tool.setuptools.packages.find]
+include = ["secure_rag*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
