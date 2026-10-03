@@ -232,6 +232,16 @@ for the baseline, RBAC, and RBAC + redaction configurations on the answerable qu
 after a warm-up, and saves the result with the platform and model to `eval/results/latency_*.json`.
 The `llm` stage is a network call and varies with connection and time of day.
 
+
+Results (37 answerable questions, one machine, Claude Haiku 4.5; the LLM stage is a network call and varies by connection):
+
+| Config | Retrieval p50 | Redaction mean | LLM p50 | Total p50 | Total p95 |
+|---|---|---|---|---|---|
+| Baseline | 10.9 ms | 0.3 ms | 1,074 ms | 1,092 ms | 1,584 ms |
+| + RBAC | 10.3 ms | 0.3 ms | 1,046 ms | 1,056 ms | 1,578 ms |
+| + RBAC + redaction | 10.7 ms | 104.2 ms | 1,000 ms | 1,110 ms | 1,757 ms |
+
+Role filtering adds no measurable latency. Redaction adds about 0.1 s per request. The model call is roughly 90% of the total.
 ## Evaluation details
 
 - **Answerable:** an LLM judge (Claude Sonnet) compares the answer with a reference answer.
