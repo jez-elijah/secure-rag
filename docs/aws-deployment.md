@@ -50,6 +50,16 @@ docker compose logs --tail 30
 
 ## Latency on EC2
 
+Results (37 answerable questions, Claude Haiku 4.5, EC2 instance type INSTANCE_TYPE in REGION; the LLM stage is a network call and varies by connection):
+
+| Config | Retrieval p50 | Redaction mean | LLM p50 | Total p50 | Total p95 |
+|---|---|---|---|---|---|
+| Baseline | 15.4 ms | 0.2 ms | 1,006 ms | 1,020 ms | 1,639 ms |
+| + RBAC | 15.0 ms | 0.2 ms | 1,067 ms | 1,083 ms | 1,921 ms |
+| + RBAC + redaction | 15.6 ms | 68.3 ms | 1,018 ms | 1,099 ms | 1,793 ms |
+
+End-to-end latency matched the laptop run (about 1.1 s median). Redaction was faster on the server (68 ms vs 104 ms), and retrieval slightly slower (16 ms vs 11 ms).
+
 ```bash
 docker compose exec api python eval/benchmark_latency.py --label aws_ec2
 ```
