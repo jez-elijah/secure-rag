@@ -50,7 +50,7 @@ docker compose logs --tail 30
 
 ## Latency on EC2
 
-Results (37 answerable questions, Claude Haiku 4.5, EC2 instance type INSTANCE_TYPE in REGION; the LLM stage is a network call and varies by connection):
+Results (37 answerable questions, Claude Haiku 4.5, EC2 instance type c7i-flex.large in ap-southeast-1; the LLM stage is a network call and varies by connection):
 
 | Config | Retrieval p50 | Redaction mean | LLM p50 | Total p50 | Total p95 |
 |---|---|---|---|---|---|
