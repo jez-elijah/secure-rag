@@ -55,6 +55,12 @@ def _get_analyzer():
     return _analyzer
 
 
+def warm_up():
+    """Load Presidio and the spaCy model now and run one analysis, so the first real
+    request does not pay the loading cost."""
+    Redactor().redact("Warm-up: Maria Santos, maria@example.com")
+
+
 class Redactor:
     def __init__(self):
         self.forward = {}  # (entity, value) -> placeholder

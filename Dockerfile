@@ -15,6 +15,7 @@ RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTr
 
 COPY data/docs ./data/docs
 COPY scripts ./scripts
+COPY eval ./eval
 
 # Mutable state (vector index, users DB, logs) lives in /app/state, mounted as a volume.
 ENV SECURE_RAG_DB_DIR=/app/state/chroma_db \
@@ -25,6 +26,6 @@ RUN useradd --create-home app && mkdir -p /app/state && chown -R app /app /opt/h
 USER app
 
 EXPOSE 8000
-HEALTHCHECK --interval=30s --timeout=5s --start-period=60s \
+HEALTHCHECK --interval=30s --timeout=5s --start-period=180s \
   CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"
 CMD ["uvicorn", "secure_rag.api:app", "--host", "0.0.0.0", "--port", "8000"]

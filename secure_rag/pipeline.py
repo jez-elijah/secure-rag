@@ -15,6 +15,7 @@ from secure_rag.ingest.indexer import build_index
 from secure_rag.retrieval.search import retrieve
 from secure_rag.security.audit import audit
 from secure_rag.security.pii import Redactor
+from secure_rag.security.pii import warm_up as _warm_pii
 from secure_rag.settings import K, MODEL
 
 # Optional override of the LLM client (tests replace it with a fake). When None, the
@@ -24,6 +25,16 @@ llm = None
 
 def _client():
     return llm if llm is not None else resources.llm
+
+
+def warm_up():
+    """Load the embedding model and the PII analyzer before the first request.
+
+    Models are otherwise created on first use, which made the first API request several
+    seconds slower than every later one.
+    """
+    resources.embedder.encode(["warm-up"])
+    _warm_pii()
 
 
 def _ms(start, end):

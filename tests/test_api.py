@@ -99,3 +99,58 @@ def test_model_failure_becomes_502(monkeypatch):
     monkeypatch.setattr(api, "ask", boom)
     r = client.post("/ask", json={"question": "q"}, headers=bearer(token()))
     assert r.status_code == 502
+
+
+# --- startup warm-up and server-side error logging ---------------------------------------
+
+class _Coll:
+    def __init__(self, n):
+        self.n = n
+
+    def count(self):
+        return self.n
+
+
+def test_startup_warms_models_after_index_check(monkeypatch):
+    order = []
+    monkeypatch.setattr(api.resources, "get_collection", lambda: _Coll(0))
+    monkeypatch.setattr(api, "build_index", lambda: order.append("index"))
+    monkeypatch.setattr(api, "warm_up", lambda: order.append("warm"))
+    monkeypatch.setattr(api, "WARMUP", True)
+    with TestClient(api.app) as c:
+        assert c.get("/health").status_code == 200
+    assert order == ["index", "warm"]
+
+
+def test_warmup_can_be_disabled(monkeypatch):
+    called = []
+    monkeypatch.setattr(api.resources, "get_collection", lambda: _Coll(5))
+    monkeypatch.setattr(api, "warm_up", lambda: called.append(1))
+    monkeypatch.setattr(api, "WARMUP", False)
+    with TestClient(api.app):
+        pass
+    assert called == []
+
+
+def test_startup_fails_fast_without_auth_secret(monkeypatch):
+    monkeypatch.delenv("AUTH_SECRET", raising=False)
+    with pytest.raises(RuntimeError):
+        with TestClient(api.app):
+            pass
+
+
+def test_model_error_is_logged_with_cause_but_not_leaked_to_client(monkeypatch, caplog):
+    def boom(*_, **__):
+        raise anthropic.BadRequestError(
+            "credit balance is too low",
+            response=httpx.Response(400, request=httpx.Request("POST", "http://x")),
+            body=None,
+        )
+
+    monkeypatch.setattr(api, "ask", boom)
+    with caplog.at_level("ERROR", logger="uvicorn.error"):
+        r = client.post("/ask", json={"question": "my secret question"}, headers=bearer(token()))
+    assert r.status_code == 502
+    assert "credit balance" not in r.text  # clients get a generic message
+    assert "credit balance is too low" in caplog.text and "status=400" in caplog.text
+    assert "my secret question" not in caplog.text  # the question is never logged

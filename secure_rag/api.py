@@ -7,6 +7,7 @@ Flow: POST /login -> bearer token -> POST /ask. The caller's role is looked up i
 database on every request (see security/auth.py), never taken from the request body, and
 redaction is a server-side policy: clients cannot switch it off.
 """
+import logging
 import os
 from contextlib import asynccontextmanager
 
@@ -17,12 +18,17 @@ from pydantic import BaseModel, Field
 
 from secure_rag import __version__, resources
 from secure_rag.ingest.indexer import build_index
-from secure_rag.pipeline import ask
+from secure_rag.pipeline import ask, warm_up
 from secure_rag.security import auth
 from secure_rag.settings import K
 
 # Server policy. Redaction stays on unless the operator explicitly sets this to "0".
 REDACT = os.getenv("SECURE_RAG_REDACT", "1") != "0"
+# Load the models at startup so the first request is not slow. Set to "0" to skip.
+WARMUP = os.getenv("SECURE_RAG_WARMUP", "1") != "0"
+
+# uvicorn's logger, so these lines appear in `docker compose logs` in uvicorn's format.
+log = logging.getLogger("uvicorn.error")
 
 
 @asynccontextmanager
@@ -30,6 +36,8 @@ async def lifespan(_app):
     auth._secret()  # fail fast if AUTH_SECRET is missing or too short
     if resources.get_collection().count() == 0:
         build_index()
+    if WARMUP:
+        warm_up()
     yield
 
 
@@ -99,7 +107,16 @@ def login(body: LoginRequest):
 def ask_endpoint(body: AskRequest, user: dict = Depends(current_user)):
     try:
         result = ask(body.question, k=body.k, user_role=user["role"], redact=REDACT)
-    except anthropic.APIError:
+    except anthropic.APIStatusError as e:
+        # The real cause goes to the server log only; clients get a generic message.
+        # The question text is never logged.
+        log.error(
+            "Model call failed: status=%s type=%s request_id=%s message=%s",
+            e.status_code, type(e).__name__, getattr(e, "request_id", None), e.message,
+        )
+        raise HTTPException(status_code=502, detail="The language model service failed.")
+    except anthropic.APIError as e:
+        log.error("Model call failed: type=%s message=%s", type(e).__name__, e)
         raise HTTPException(status_code=502, detail="The language model service failed.")
     # `outgoing` (the exact LLM payload) is deliberately not returned to API clients.
     return AskResponse(

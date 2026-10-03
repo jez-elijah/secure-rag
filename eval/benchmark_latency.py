@@ -110,6 +110,7 @@ def main():
         "results": results,
     }
     path = ROOT / "eval" / "results" / f"latency_{datetime.now():%Y%m%d_%H%M%S}_{args.label}.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(out, indent=2), encoding="utf-8")
     print(f"\nSaved {path.relative_to(ROOT)}")
 
