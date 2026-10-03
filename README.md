@@ -199,6 +199,9 @@ policy that clients cannot turn off (`SECURE_RAG_REDACT=0` is an operator-only o
 the exact LLM payload is never returned to clients. Interactive docs are at `/docs`.
 
 ## Docker
+See [docs/aws-deployment.md](docs/aws-deployment.md) for the AWS EC2 deployment.
+
+![Answer from the API running on EC2](docs/aws-ask.png)
 
 ```powershell
 docker compose up --build
