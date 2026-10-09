@@ -132,7 +132,7 @@ Optional: set `LLM_MODEL` to change the answering model (default `claude-haiku-4
 ```powershell
 python -m secure_rag.ingest.indexer                          # build the index (33 chunks)
 python -m secure_rag.pipeline "What is the restocking fee?" --role=employee --redact
-python -m pytest tests -q                                    # 47 tests
+python -m pytest tests -q                                    # 53 tests
 ```
 
 **Run the evaluation** (about 110 short API calls per run):
@@ -236,7 +236,9 @@ after a warm-up, and saves the result with the platform and model to `eval/resul
 The `llm` stage is a network call and varies with connection and time of day.
 
 
-Results (37 answerable questions, one machine, Claude Haiku 4.5; the LLM stage is a network call and varies by connection):
+Results (37 answerable questions, Claude Haiku 4.5; the LLM stage is a network call and varies by connection and time of day).
+
+**Local machine**
 
 | Config | Retrieval p50 | Redaction mean | LLM p50 | Total p50 | Total p95 |
 |---|---|---|---|---|---|
@@ -244,7 +246,16 @@ Results (37 answerable questions, one machine, Claude Haiku 4.5; the LLM stage i
 | + RBAC | 10.3 ms | 0.3 ms | 1,046 ms | 1,056 ms | 1,578 ms |
 | + RBAC + redaction | 10.7 ms | 104.2 ms | 1,000 ms | 1,110 ms | 1,757 ms |
 
-Role filtering adds no measurable latency. Redaction adds about 0.1 s per request. The model call is roughly 90% of the total.
+**AWS EC2** (`eval/results/latency_20261003_145619_aws_ec2.json`)
+
+| Config | Retrieval p50 | Redaction mean | LLM p50 | Total p50 | Total p95 |
+|---|---|---|---|---|---|
+| Baseline | 15.4 ms | 0.2 ms | 1,006 ms | 1,020 ms | 1,639 ms |
+| + RBAC | 15.0 ms | 0.2 ms | 1,067 ms | 1,083 ms | 1,921 ms |
+| + RBAC + redaction | 15.6 ms | 68.3 ms | 1,018 ms | 1,099 ms | 1,793 ms |
+
+Role filtering adds no measurable latency. Redaction adds roughly 0.1 s per request. The model call is roughly 90% of the total.
+
 ## Evaluation details
 
 - **Answerable:** an LLM judge (Claude Sonnet) compares the answer with a reference answer.
