@@ -247,6 +247,8 @@ unknown tools.
 `frontend/` is a React (Vite) client for the API: login, a chat view with a Standard RAG / Agent
 toggle, cited sources, the agent's tool calls, and per-request latency.
 
+![Web UI](docs/ui.png)
+
 ```bash
 uvicorn secure_rag.api:app --reload         # terminal 1 (API on :8000)
 cd frontend && npm install && npm run dev   # terminal 2 (UI on :5173, proxies /api to :8000)
