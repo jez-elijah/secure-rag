@@ -1,0 +1,26 @@
+:root { font-family: system-ui, sans-serif; color: #1a1a1a; background: #f4f5f7; }
+body { margin: 0; display: flex; justify-content: center; padding: 24px; }
+.card { background: #fff; border-radius: 10px; box-shadow: 0 1px 4px rgba(0,0,0,.12); padding: 20px; width: 100%; max-width: 720px; box-sizing: border-box; }
+.login { max-width: 380px; margin-top: 10vh; }
+h1 { font-size: 1.3rem; margin: 0 0 4px; }
+label { display: block; margin: 12px 0; font-size: .9rem; }
+input[type=text], input:not([type]), input[type=password] { display: block; width: 100%; padding: 8px; margin-top: 4px; box-sizing: border-box; border: 1px solid #c9ccd1; border-radius: 6px; font: inherit; }
+button { background: #1f4fd8; color: #fff; border: 0; border-radius: 6px; padding: 8px 16px; font: inherit; cursor: pointer; }
+button:disabled { opacity: .5; cursor: not-allowed; }
+button.link { background: none; color: #1f4fd8; padding: 0; }
+.muted { color: #666; } .small { font-size: .8rem; margin: 2px 0 0; }
+.error { color: #b00020; } .warn { color: #8a5a00; font-size: .85rem; }
+.chat header { display: flex; justify-content: space-between; align-items: flex-start; }
+.modes { display: flex; gap: 16px; margin: 8px 0; } .modes label { margin: 0; }
+.log { height: 55vh; overflow-y: auto; border: 1px solid #e1e3e6; border-radius: 8px; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+.msg { padding: 8px 12px; border-radius: 8px; max-width: 85%; }
+.msg.user { background: #e8eefc; align-self: flex-end; }
+.msg.bot { background: #f1f2f4; align-self: flex-start; }
+.msg.error { background: #fdecee; color: #b00020; align-self: flex-start; }
+.answer { margin: 0 0 6px; overflow-wrap: anywhere; }
+.answer > :first-child { margin-top: 0; } .answer > :last-child { margin-bottom: 0; }
+.answer h1, .answer h2, .answer h3 { font-size: 1rem; margin: 12px 0 4px; }
+.answer p { margin: 6px 0; } .answer ul, .answer ol { margin: 6px 0; padding-left: 20px; }
+.sources { margin: 6px 0 0; padding-left: 18px; font-size: .85rem; }
+details { font-size: .85rem; margin: 4px 0; }
+.composer { display: flex; gap: 8px; margin-top: 12px; } .composer input { flex: 1; }

@@ -132,7 +132,7 @@ Optional: set `LLM_MODEL` to change the answering model (default `claude-haiku-4
 ```powershell
 python -m secure_rag.ingest.indexer                          # build the index (33 chunks)
 python -m secure_rag.pipeline "What is the restocking fee?" --role=employee --redact
-python -m pytest tests -q                                    # 53 tests
+python -m pytest tests -q                                    # 63 tests
 ```
 
 **Run the evaluation** (about 110 short API calls per run):
@@ -223,6 +223,38 @@ redaction, audit, and citation checks. It is covered by tests that use a fake ch
 pip install -e ".[langchain]"
 python examples/langchain_rag.py "What is the restocking fee?" --role=employee
 ```
+
+## Agent mode (tool calling)
+
+`POST /agent` is a tool-calling variant of `/ask` (`secure_rag/agent.py`). Instead of one fixed
+retrieve-then-generate pass, the model decides which tools to call: `search_documents` (it may
+search several times with different queries) and `list_accessible_departments`. The security
+properties do not depend on the model behaving:
+
+- The caller's role is bound server-side and is not a tool argument, so the model cannot request
+  another role's documents. Retrieval is still filtered by that role.
+- The question and every retrieved passage are redacted before they enter the conversation;
+  placeholders are restored only in the final answer.
+- The loop is capped at 5 model calls, unknown tools return an error to the model, and citations
+  are validated against the passages actually retrieved.
+
+Tests (`tests/test_agent.py`, `tests/test_api_agent.py`) use a scripted fake model and cover the
+tool loop, role binding, PII never reaching the payload, invalid citations, the step cap, and
+unknown tools.
+
+## Web UI (React)
+
+`frontend/` is a React (Vite) client for the API: login, a chat view with a Standard RAG / Agent
+toggle, cited sources, the agent's tool calls, and per-request latency.
+
+```bash
+uvicorn secure_rag.api:app --reload         # terminal 1 (API on :8000)
+cd frontend && npm install && npm run dev   # terminal 2 (UI on :5173, proxies /api to :8000)
+npm test                                    # Vitest + Testing Library
+```
+
+The session token is kept in memory only, so a refresh signs the user out. A production deployment
+would use an httpOnly cookie and serve the UI and API from one origin.
 
 ## Latency benchmark
 

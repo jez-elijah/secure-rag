@@ -17,6 +17,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, Field
 
 from secure_rag import __version__, resources
+from secure_rag.agent import run_agent
 from secure_rag.ingest.indexer import build_index
 from secure_rag.pipeline import ask, warm_up
 from secure_rag.security import auth
@@ -87,6 +88,23 @@ def current_user(creds: HTTPAuthorizationCredentials | None = Depends(bearer)):
     return user
 
 
+def _guarded(fn, **kwargs):
+    """Run a model-backed call; map Anthropic errors to a generic 502 (details go to the log only)."""
+    try:
+        return fn(**kwargs)
+    except anthropic.APIStatusError as e:
+        # The real cause goes to the server log only; clients get a generic message.
+        # The question text is never logged.
+        log.error(
+            "Model call failed: status=%s type=%s request_id=%s message=%s",
+            e.status_code, type(e).__name__, getattr(e, "request_id", None), e.message,
+        )
+        raise HTTPException(status_code=502, detail="The language model service failed.")
+    except anthropic.APIError as e:
+        log.error("Model call failed: type=%s message=%s", type(e).__name__, e)
+        raise HTTPException(status_code=502, detail="The language model service failed.")
+
+
 @app.get("/health")
 def health():
     """Liveness only: does not load models or touch the LLM."""
@@ -105,19 +123,7 @@ def login(body: LoginRequest):
 
 @app.post("/ask", response_model=AskResponse)
 def ask_endpoint(body: AskRequest, user: dict = Depends(current_user)):
-    try:
-        result = ask(body.question, k=body.k, user_role=user["role"], redact=REDACT)
-    except anthropic.APIStatusError as e:
-        # The real cause goes to the server log only; clients get a generic message.
-        # The question text is never logged.
-        log.error(
-            "Model call failed: status=%s type=%s request_id=%s message=%s",
-            e.status_code, type(e).__name__, getattr(e, "request_id", None), e.message,
-        )
-        raise HTTPException(status_code=502, detail="The language model service failed.")
-    except anthropic.APIError as e:
-        log.error("Model call failed: type=%s message=%s", type(e).__name__, e)
-        raise HTTPException(status_code=502, detail="The language model service failed.")
+    result = _guarded(ask, question=body.question, k=body.k, user_role=user["role"], redact=REDACT)
     # `outgoing` (the exact LLM payload) is deliberately not returned to API clients.
     return AskResponse(
         answer=result["answer"],
@@ -126,4 +132,34 @@ def ask_endpoint(body: AskRequest, user: dict = Depends(current_user)):
         invalid_citations=result["invalid_citations"],
         retrieved_docs=result["retrieved_docs"],
         timings_ms=result["timings_ms"],
+    )
+
+
+class AgentStep(BaseModel):
+    tool: str
+    input: dict
+    error: bool
+
+
+class AgentResponse(AskResponse):
+    steps: list[AgentStep]
+
+
+class AgentRequest(BaseModel):
+    question: str = Field(min_length=1, max_length=2000)
+
+
+@app.post("/agent", response_model=AgentResponse)
+def agent_endpoint(body: AgentRequest, user: dict = Depends(current_user)):
+    """Tool-calling variant of /ask: the model chooses which searches to run (see agent.py).
+    Role and redaction are bound server-side exactly as for /ask."""
+    result = _guarded(run_agent, question=body.question, user_role=user["role"], redact=REDACT)
+    return AgentResponse(
+        answer=result["answer"],
+        role=user["role"],
+        sources=result["sources"],
+        invalid_citations=result["invalid_citations"],
+        retrieved_docs=result["retrieved_docs"],
+        timings_ms=result["timings_ms"],
+        steps=result["steps"],
     )
